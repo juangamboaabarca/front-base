@@ -2,17 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
-
 const Login = () => {
   const navigate = useNavigate();
-
+  const { login } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const [form, setForm] = useState({ usuario: "", password: "" });
-  const [institutions, setInstitutions] = useState([]);
-  const [institution, setInstitution] = useState(null);
+  const [form, setForm] = useState({ id: "", password: "" });
   const [error, setError] = useState(null);
-  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,120 +19,63 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
-    try {    
-      const res = await fetch(`${API_URL}/user/auth/login/`, {
+    try {
+      const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      console.log("hola")
-      const data = await res.json();
-      console.log(data)
-
-      if (!res.ok || !Array.isArray(data)) {
-        setError("Usuario o contraseña incorrecta.");
-        return;
-      }
-
-      if (data.length === 0) {
-        setError("No hay colegios asociados.");
-        return;
-      }
-
-      // Mostrar colegios disponibles
-      setInstitutions(data);
-    } catch (err) {
-      setError("Error al intentar iniciar sesión.");
-    }
-  };
-
-  const handleSeleccionarInstitucion = async () => {
-    if (!institution) return;
-
-    try {
-      console.log(API_URL)
-      const res = await fetch(`${API_URL}/user/auth/institucion/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          institucion_id: institution,
-          usuario: form.usuario,
-        }),
-      });
 
       const data = await res.json();
+      setLoading(false);
 
-      if (!res.ok || !data.access_token) {
-        setError("No se pudo cargar el perfil del colegio.");
+      if (!res.ok) {
+        setError(data.error || "Error al iniciar sesión");
         return;
       }
 
-      // Guardar token y datos
-      login(data.perfil, data.access_token, data.colegio, data.conf_paginacion, form.password);
-      navigate("/students");
+      login(form, data.token);
+      navigate("/");
     } catch (err) {
-      setError("Error al seleccionar institución.");
+      console.error("Error al intentar iniciar sesión:", err);
+      setError("Error de conexión. Intenta nuevamente.");
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-10">
       <h1 className="text-2xl font-bold mb-6 text-center text-blue-700">Iniciar sesión</h1>
-
-      {!institutions.length ? (
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="text"
-            name="usuario"
-            placeholder="Cédula"
-            value={form.usuario}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Contraseña"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg w-full"
-          >
-            Entrar
-          </button>
-        </form>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-gray-700 font-medium">Seleccione su institución:</p>
-          <select
-            value={institution || ""}
-            onChange={(e) => setInstitution(e.target.value)}
-            className="w-full border rounded-lg p-3"
-          >
-            <option value="">-- Seleccionar --</option>
-            {institutions.map((ins) => (
-              <option key={ins.id} value={ins.id}>
-                {ins.nombre} – {ins.region}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={handleSeleccionarInstitucion}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg w-full"
-            disabled={!institution}
-          >
-            Acceder
-          </button>
-        </div>
-      )}
+      <form onSubmit={handleLogin} className="space-y-4">
+        <input
+          type="text"
+          name="id"
+          placeholder="Cédula"
+          value={form.id}
+          onChange={handleChange}
+          required
+          className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Contraseña"
+          value={form.password}
+          onChange={handleChange}
+          required
+          className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button
+          type="submit"
+          className={`bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg w-full ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={loading}
+        >
+          {loading ? "Cargando..." : "Entrar"}
+        </button>
+      </form>
     </div>
   );
 };

@@ -9,17 +9,14 @@ export const AuthProvider = ({ children }) => {
   const [password, setPassword] = useState(null);
   const [pageSize, setPageSize] = useState(() => localStorage.getItem("pageSize"));
   const [token, setToken] = useState(() => localStorage.getItem("access_token"));
-  const [institution, setInstitution] = useState(() =>
-    JSON.parse(localStorage.getItem("colegio"))
-  );
 
-  const login = (perfil, jwt, institution, pageSize, rawPassword = null) => {
+  const login = (perfil, jwt,  pageSize, rawPassword = null) => {
     localStorage.setItem("access_token", jwt);
     localStorage.setItem("perfil", JSON.stringify(perfil));
-    localStorage.setItem("colegio", JSON.stringify(institution));
+    console.log(jwt)
     setUser(perfil);
     setToken(jwt);
-    setInstitution(institution);
+  
     setPassword(rawPassword); // solo en memoria
   };
   
@@ -34,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, institution, login, password, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, login, password, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
